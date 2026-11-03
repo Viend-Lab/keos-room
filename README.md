@@ -97,3 +97,14 @@ npm run test:visual
 # Build bundle client production
 npm run build
 ```
+
+## Kantor 3D
+
+Tampilan browser adalah satu lantai kantor terbuka 3D yang kamu awasi. Karyawan duduk berderet dan berhadapan, dikelompokkan per jobdesk: Project Manager, Frontend, Backend, Quality Assurance, Designer, dan Security & DevOps. Ada juga Ruang Meeting berdinding kaca, Ruang Tengah, dan Pojok Kopi. Tiap karyawan memakai MacBook atau PC.
+
+- **Kamera bebas:** seret untuk melihat sekeliling, scroll untuk maju ke arah kursor, W A S D untuk berjalan, Q dan E untuk turun dan naik. Klik nama seseorang di daftar karyawan untuk terbang ke mejanya. Daftar bisa disembunyikan.
+
+- **Emosi:** karyawan bisa lelah, malas-malasan, ketiduran, marah, ketakutan, atau senang, mengikuti energi dan stresnya.
+- **Pecut:** klik karyawan yang malas di kantor, atau tombol Pecut di sebelah namanya di daftar, agar langsung kembali bekerja. Memecut orang yang sedang bekerja hanya menaikkan stresnya.
+- **Peliharaan:** Mochi, Oreo, Kopi, dan Tahu berkeliaran dan menurunkan stres di sekitarnya. Klik untuk mengelus.
+- **Telemetri:** aktivitas agen sungguhan membangunkan karyawan dengan jobdesk yang sesuai, misalnya tes ke QA dan deploy ke DevOps.

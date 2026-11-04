@@ -12,6 +12,7 @@ export interface DialogueMessage {
 
 export class DialogueEngine {
   private characterNames: Record<string, string> = {
+    bos: 'Bos',
     blaze: 'Blaze',
     nova: 'Nova',
     aura: 'Aura',
@@ -25,6 +26,7 @@ export class DialogueEngine {
   };
 
   private characterTitles: Record<string, string> = {
+    bos: 'Direktur Utama',
     blaze: 'Engineering PM',
     nova: 'Tech Lead & Architect',
     aura: 'UI/UX Designer',
@@ -38,6 +40,7 @@ export class DialogueEngine {
   };
 
   private characterColors: Record<string, string> = {
+    bos: '#DC2626',
     blaze: '#FF3366',
     nova: '#00F0FF',
     aura: '#EC4899',
@@ -321,6 +324,46 @@ export class DialogueEngine {
       text: pick.text,
       tone: pick.tone,
       durationMs: 4000
+    };
+  }
+
+  public getBossScoldDialogue(targetName: string): DialogueMessage {
+    const lines = [
+      `[SCOLD] Hey ${targetName}, bangun! Jam kerja bukan buat tidur!`,
+      `[SCOLD] ${targetName}! Jangan malas-malasan, deploy deadline sebentar lagi!`,
+      `[SCOLD] Fokus ${targetName}! Klien nunggu deliverable selesai tepat waktu!`,
+      `[SCOLD] ${targetName}, laptop nyala tapi orangnya merem. Ayo segera kerja!`
+    ];
+    const text = lines[Math.floor(Math.random() * lines.length)];
+    return {
+      speakerId: 'bos',
+      speakerName: 'Bos',
+      roleTitle: 'Direktur Utama',
+      roleColor: '#DC2626',
+      targetName,
+      text,
+      tone: 'angry',
+      durationMs: 4500
+    };
+  }
+
+  public getBossCoffeeDialogue(targetName: string): DialogueMessage {
+    const lines = [
+      `[COFFEE_GIFT] Kerja bagus ${targetName}! Ini kopi spesial buat kamu, teruskan performanya.`,
+      `[COFFEE_GIFT] Mantap progressnya cepat dan rapi ${targetName}. Nikmati kopi hangat ini.`,
+      `[COFFEE_GIFT] Dedikasi luar biasa ${targetName}! Kopi espresso terbaik untuk developer terbaik.`,
+      `[COFFEE_GIFT] Hasil pengujian memuaskan ${targetName}. Istirahat sejenak sambil minum kopi.`
+    ];
+    const text = lines[Math.floor(Math.random() * lines.length)];
+    return {
+      speakerId: 'bos',
+      speakerName: 'Bos',
+      roleTitle: 'Direktur Utama',
+      roleColor: '#DC2626',
+      targetName,
+      text,
+      tone: 'celebrate',
+      durationMs: 4500
     };
   }
 }

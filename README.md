@@ -102,8 +102,12 @@ npm run build
 
 Tampilan browser adalah satu lantai kantor terbuka 3D yang kamu awasi. Karyawan duduk berderet dan berhadapan, dikelompokkan per jobdesk: Project Manager, Frontend, Backend, Quality Assurance, Designer, dan Security & DevOps. Ada juga Ruang Meeting berdinding kaca, Ruang Tengah, dan Pojok Kopi. Tiap karyawan memakai MacBook atau PC.
 
-- **Kamera bebas:** seret untuk melihat sekeliling, scroll untuk maju ke arah kursor, W A S D untuk berjalan, Q dan E untuk turun dan naik. Klik nama seseorang di daftar karyawan untuk terbang ke mejanya. Daftar bisa disembunyikan.
-
+- **Kamera bebas & Universal FPP POV:** seret untuk melihat sekeliling, scroll untuk maju ke arah kursor, W A S D untuk berjalan, Q dan E untuk turun dan naik. Klik nama seseorang di daftar karyawan (atau Bos) untuk masuk ke mode sudut pandang orang pertama (First-Person Perspective / FPP POV) melalui mata karakter tersebut. Seret mouse untuk menoleh ke segala arah, dan tekan tombol `Escape` atau klik tombol `Keluar POV (ESC)` di HUD atas untuk kembali ke kamera bebas.
+- **Bos & Ruang Direksi (Executive Office):** karakter Bos ("Direktur Utama") menempati ruang kerja eksekutif dengan meja kayu mahoni mewah dan lencana `[BOS]`.
+- **Rutinitas Patroli Otonom Bos:** Bos memiliki state machine otonom yang bergantian antara bekerja di meja (`IN_OFFICE`), berpatroli menyusuri lorong meja karyawan (`PATROLLING`), dan menegakkan kedisiplinan kantor:
+  - **Teguran Pemalas (`[SCOLD]`):** bila mendapati karyawan yang tidur (`TIDUR`), malas-malasan (`MALAS`), atau kelelahan, Bos akan berhenti, memarahi mereka dengan dialog `[SCOLD]`, membunyikan buzzer, dan membangunkan mereka kembali bekerja.
+  - **Hadiah Kopi (`[COFFEE_GIFT]`):** bila mendapati karyawan yang rajin dan berkinerja tinggi (`FOKUS` dengan energi tinggi), Bos memberikan apresiasi berupa secangkir kopi hangat bertabur aroma uap emas, memulihkan energi hingga 100%, dan mengurangi stres.
+  - **Cooldown 90 Detik:** setiap interaksi memiliki jeda proteksi 90 detik per karyawan agar tidak berulang berlebihan.
 - **Emosi:** karyawan bisa lelah, malas-malasan, ketiduran, marah, ketakutan, atau senang, mengikuti energi dan stresnya.
 - **Pecut:** klik karyawan yang malas di kantor, atau tombol Pecut di sebelah namanya di daftar, agar langsung kembali bekerja. Memecut orang yang sedang bekerja hanya menaikkan stresnya.
 - **Peliharaan:** Mochi, Oreo, Kopi, dan Tahu berkeliaran dan menurunkan stres di sekitarnya. Klik untuk mengelus.

@@ -83,6 +83,54 @@ const PM_X = 12.4;
 const PM_AISLE_X = 13.3;
 const SOUTH_AISLE_Z = 3.2;
 
+export const EXECUTIVE_OFFICE = {
+  minX: 11.0,
+  maxX: 15.5,
+  minZ: -8.5,
+  maxZ: -5.0,
+  deskX: 13.4,
+  deskZ: -6.5,
+  seatX: 14.2,
+  seatZ: -6.5,
+  doorX: 11.5,
+  doorZ: -5.0
+};
+
+export function executiveSeat(): Seat {
+  return {
+    x: EXECUTIVE_OFFICE.seatX,
+    z: EXECUTIVE_OFFICE.seatZ,
+    rot: -Math.PI / 2, // Facing West toward desk & office door
+    deskX: EXECUTIVE_OFFICE.deskX,
+    deskZ: EXECUTIVE_OFFICE.deskZ,
+    access: [
+      { x: EXECUTIVE_OFFICE.seatX, z: EXECUTIVE_OFFICE.seatZ },
+      { x: EXECUTIVE_OFFICE.doorX, z: EXECUTIVE_OFFICE.deskZ },
+      { x: EXECUTIVE_OFFICE.doorX, z: -4.5 },
+      { x: PM_AISLE_X, z: -4.5 },
+      { x: PM_AISLE_X, z: SOUTH_AISLE_Z },
+      { x: SPINE_X, z: SOUTH_AISLE_Z }
+    ]
+  };
+}
+
+export const BOSS_PATROL_WAYPOINTS: Point[] = [
+  { x: 11.5, z: -5.0 },              // Exit executive room
+  { x: PM_AISLE_X, z: -4.5 },        // PM aisle
+  { x: 10.0, z: -2.0 },              // East aisle
+  { x: 4.3, z: -3.5 },               // Backend pod north aisle
+  { x: 4.3, z: -7.5 },               // Backend pod south aisle
+  { x: -3.5, z: -7.5 },              // Frontend pod south aisle
+  { x: -3.5, z: -3.5 },              // Frontend pod north aisle
+  { x: SPINE_X, z: -1.0 },           // Main spine walkway
+  { x: -3.5, z: 2.0 },               // QA pod aisle
+  { x: 2.5, z: 2.0 },                // Designer pod aisle
+  { x: 6.5, z: 2.0 },                // SecOps pod aisle
+  { x: PM_AISLE_X, z: SOUTH_AISLE_Z }, // South aisle towards office
+  { x: 11.5, z: -4.5 },              // Return door
+  { x: 14.2, z: -6.5 }               // Back to executive desk
+];
+
 function bossSeat(z: number): Seat {
   return {
     x: PM_X,
@@ -95,6 +143,14 @@ function bossSeat(z: number): Seat {
 }
 
 export const TEAMS: Team[] = [
+  {
+    id: 'executive',
+    name: 'Executive / Direksi',
+    color: '#DC2626',
+    zone: { cx: 13.25, cz: -6.75, width: 4.5, depth: 3.5 },
+    seats: [executiveSeat()],
+    boss: true
+  },
   { id: 'frontend', name: 'Frontend', color: '#38BDF8', zone: podZone(-3.5, -5.5, 2), seats: pod(-3.5, -5.5, 2) },
   { id: 'backend', name: 'Backend', color: '#A855F7', zone: podZone(4.3, -5.5, 3), seats: pod(4.3, -5.5, 3) },
   { id: 'qa', name: 'Quality Assurance', color: '#10B981', zone: podZone(-3.5, 0, 2), seats: pod(-3.5, 0, 2) },
@@ -159,6 +215,7 @@ const crewAsset = (name: string) => `/assets/crew/office-${name}.glb`;
 
 // The first ten keep the ids DialogueEngine speaks through, which already pick the speaker by job
 export const CREW: CrewSpec[] = [
+  { id: 'bos', name: 'Bos', roleTitle: 'Direktur Utama', roleColor: '#DC2626', asset: crewAsset('dohun'), teamId: 'executive', seat: 0, device: 'MAC', startMood: 'FOKUS' },
   { id: 'blaze', name: 'Blaze', roleTitle: 'Engineering PM', roleColor: '#EF4444', asset: crewAsset('male-base'), teamId: 'pm', seat: 0, device: 'PC', startMood: 'MARAH' },
   { id: 'nova', name: 'Nova', roleTitle: 'Tech Lead & Architect', roleColor: '#06B6D4', asset: crewAsset('ara'), teamId: 'pm', seat: 1, device: 'MAC', startMood: 'FOKUS' },
   { id: 'rex', name: 'Rex', roleTitle: 'Frontend Engineer', roleColor: '#38BDF8', asset: crewAsset('bomi'), teamId: 'frontend', seat: 0, device: 'MAC', startMood: 'FOKUS' },

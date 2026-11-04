@@ -90,3 +90,31 @@ export interface KeosTelemetryPayload {
   category?: string;
   message?: string;
 }
+
+// ==========================================
+// BOSS NPC & FPP CAMERA TELEMETRY TYPES
+// ==========================================
+
+export type BossBehaviorState = 
+  | 'IN_OFFICE'
+  | 'WALKING_OUT'
+  | 'PATROLLING'
+  | 'INSPECTING_WORKER'
+  | 'SCOLDING'
+  | 'GIFTING_COFFEE'
+  | 'RETURNING';
+
+export type CameraMode = 'FREE' | 'FPP';
+
+export type EvaluationAction = 'IGNORE' | 'SCOLD' | 'COFFEE_GIFT';
+
+export interface InspectionOutcome {
+  targetId: string;
+  action: EvaluationAction;
+  dialogueText: string;
+  badgeToken: '[SCOLD]' | '[COFFEE_GIFT]' | '[NEUTRAL]';
+  stressDelta: number;
+  energyDelta: number;
+  newMood: 'FOKUS' | 'KAGET' | 'SENANG';
+}
+

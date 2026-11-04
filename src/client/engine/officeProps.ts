@@ -280,6 +280,42 @@ export function buildOfficeDesk(width: number, depth: number, height: number): T
   return group;
 }
 
+/** Grand executive mahogany desk with gold accents for the Boss */
+export function buildExecutiveDesk(): THREE.Group {
+  const group = new THREE.Group();
+  const mahogany = new THREE.MeshStandardMaterial({ color: '#4A1D11', roughness: 0.35 });
+  const gold = new THREE.MeshStandardMaterial({ color: '#D4AF37', roughness: 0.3, metalness: 0.8 });
+  const leather = new THREE.MeshStandardMaterial({ color: '#1A1A1A', roughness: 0.7 });
+
+  // Main thick desk slab (width 2.2, depth 1.1, height 0.76)
+  const slab = part(new THREE.BoxGeometry(2.2, 0.08, 1.1), mahogany, 0, 0.74, 0, group);
+  slab.receiveShadow = true;
+  slab.castShadow = true;
+
+  // Leather writing pad in center
+  const pad = part(new THREE.BoxGeometry(1.0, 0.01, 0.6), leather, 0, 0.785, 0.08, group);
+  pad.receiveShadow = true;
+
+  // Solid mahogany side pedestals
+  [-0.9, 0.9].forEach((sx) => {
+    part(new THREE.BoxGeometry(0.35, 0.70, 0.95), mahogany, sx, 0.35, 0, group);
+    // Gold drawer handles
+    [-0.1, 0.1].forEach((zy) => {
+      part(new THREE.BoxGeometry(0.04, 0.02, 0.12), gold, sx - (sx > 0 ? 0.18 : -0.18), 0.35 + zy, 0, group);
+    });
+  });
+
+  // Modesty front panel with gold trim
+  part(new THREE.BoxGeometry(1.45, 0.55, 0.04), mahogany, 0, 0.42, -0.42, group);
+  part(new THREE.BoxGeometry(1.35, 0.02, 0.05), gold, 0, 0.65, -0.42, group);
+
+  // Executive silver nameplate: [BOS / DIREKTUR UTAMA]
+  const nameplateMat = new THREE.MeshStandardMaterial({ color: '#C0C0C0', roughness: 0.25, metalness: 0.85 });
+  part(new THREE.BoxGeometry(0.35, 0.04, 0.06), nameplateMat, 0.5, 0.80, -0.25, group);
+
+  return group;
+}
+
 /** Cubicle wall standing between two neighbours' desks. Origin on the floor at its centre, running along Z. */
 export function buildSidePanel(length: number, height: number, color: string): THREE.Group {
   const group = new THREE.Group();

@@ -53,11 +53,11 @@ test.describe('Keos Room corporate office', () => {
     expect(emojiRegex.test(bodyText)).toBeFalsy();
 
     // Every division and every person is listed
-    for (const team of ['Project Manager', 'Frontend', 'Backend', 'Quality Assurance', 'Designer', 'Security & DevOps']) {
+    for (const team of ['Executive / Direksi', 'Project Manager', 'Frontend', 'Backend', 'Quality Assurance', 'Designer', 'Security & DevOps']) {
       await expect(page.locator('.roster-division', { hasText: team })).toBeVisible();
     }
-    await expect(page.locator('.person-row')).toHaveCount(18);
-    await expect(page.locator('.person-device', { hasText: 'MacBook' })).toHaveCount(9);
+    await expect(page.locator('.person-row')).toHaveCount(19);
+    await expect(page.locator('.person-device', { hasText: 'MacBook' })).toHaveCount(10);
     await expect(page.locator('.person-device', { hasText: /^PC$/ })).toHaveCount(9);
 
     await page.screenshot({ path: path.join(reportsDir, 'office-overview.png') });

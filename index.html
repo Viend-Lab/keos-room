@@ -119,6 +119,47 @@
       border-color: var(--erp-shadow) #FFFFFF #FFFFFF var(--erp-shadow);
     }
 
+    /* FPP HUD OVERLAY */
+    .fpp-hud {
+      position: absolute;
+      top: 14px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(16, 25, 43, 0.92);
+      border: 1px solid #38BDF8;
+      color: #FFFFFF;
+      padding: 6px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      z-index: 25;
+      font-size: 13px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+      pointer-events: auto;
+    }
+
+    .fpp-tag {
+      background: #38BDF8;
+      color: #000000;
+      font-weight: 700;
+      padding: 2px 6px;
+      font-size: 11px;
+      letter-spacing: 0.5px;
+    }
+
+    .fpp-name {
+      font-weight: 600;
+      color: #E2E8F0;
+    }
+
+    .btn-exit-fpp {
+      background: #DC2626 !important;
+      color: #FFFFFF !important;
+      border: 1px solid #EF4444 !important;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
     .btn-action.muted {
       color: var(--ink-soft);
     }
@@ -380,6 +421,13 @@
       border-color: #BE3F8A;
     }
 
+    .stamp-coffee {
+      font-size: 24px;
+      color: #D97706;
+      border-color: #D97706;
+      background: rgba(254, 243, 199, 0.5);
+    }
+
     @keyframes stamp-down {
       0% { opacity: 0; transform: translate(-50%, -50%) rotate(-11deg) scale(2.4); }
       14% { opacity: 1; transform: translate(-50%, -50%) rotate(-11deg) scale(1); }
@@ -493,6 +541,11 @@
   <div class="work-area">
     <main class="viewport-wrap">
       <div id="canvas-container"></div>
+      <div id="fpp-hud" class="fpp-hud" style="display: none;">
+        <span class="fpp-tag">[POV_FPP]</span>
+        <span id="fpp-target-name" class="fpp-name">Karyawan</span>
+        <button id="btn-exit-fpp" class="btn-action btn-exit-fpp">Keluar POV (ESC)</button>
+      </div>
       <div id="person-card"></div>
       <div class="controls-help">
         <div><b>Seret</b> untuk melihat sekeliling, <b>scroll</b> untuk maju ke arah kursor</div>

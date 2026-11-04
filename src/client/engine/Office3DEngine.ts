@@ -19,10 +19,12 @@ import {
 } from './EmotionSystem';
 import { FreeCamera } from './FreeCamera';
 import {
+  BOSS_PATROL_WAYPOINTS,
   coffeeSpot,
   CREW,
   CrewSpec,
   DeviceKind,
+  EXECUTIVE_OFFICE,
   getTeam,
   LOUNGE_SEATS,
   MEETING_ROOM,
@@ -43,6 +45,7 @@ import {
   buildCoffeeBar,
   buildCorgi,
   buildDeadlineBoard,
+  buildExecutiveDesk,
   buildHangingSign,
   buildMacBook,
   buildMeetingScreen,
@@ -57,6 +60,8 @@ import {
   ScreenKind,
   screenForMood
 } from './officeProps';
+import { BossSystem, EmployeeEvaluationSubject } from './BossSystem';
+import type { BossBehaviorState, InspectionOutcome } from '../../types';
 
 interface Pose {
   torsoPitch: number;
@@ -186,6 +191,8 @@ export class Office3DEngine {
   private meetingTimer: number = MEETING_EVERY_SECONDS - 20;
   private moodBubbleCooldown: number = 0;
   private whipCount: number = 0;
+  private fppTargetId: string | null = null;
+  public bossSystem: BossSystem | null = null;
 
   private speechBubbleOverlay: HTMLElement;
   private effectOverlay: HTMLElement;
@@ -445,7 +452,7 @@ export class Office3DEngine {
     });
     if (!team.boss) this.buildCubicleWalls(team);
 
-    if (team.boss) {
+    if (team.boss && team.id !== 'executive') {
       const board = buildDeadlineBoard();
       board.scale.setScalar(0.6);
       board.rotation.y = -Math.PI / 2;
@@ -453,6 +460,14 @@ export class Office3DEngine {
       this.scene.add(board);
       this.buildFicusPlant(ROOM.maxX - 0.6, zone.cz - 2.6);
       this.buildFicusPlant(ROOM.maxX - 0.6, zone.cz + 2.6);
+    }
+
+    if (team.id === 'executive') {
+      const o = EXECUTIVE_OFFICE;
+      this.buildGlassPartition(o.minX, o.minZ, o.minX, o.maxZ);
+      this.buildGlassPartition(o.doorX + 0.8, o.maxZ, o.maxX, o.maxZ);
+      this.buildFicusPlant(o.maxX - 0.6, o.minZ + 0.8);
+      this.buildFicusPlant(o.minX + 0.6, o.minZ + 0.8);
     }
   }
 
@@ -485,6 +500,16 @@ export class Office3DEngine {
   }
 
   private buildBossDesk(seat: Seat, occupant: CrewSpec | undefined, team: Team) {
+    if (team.id === 'executive') {
+      const desk = buildExecutiveDesk();
+      desk.position.set(seat.deskX, 0, seat.deskZ);
+      desk.rotation.y = seat.rot + Math.PI / 2;
+      this.scene.add(desk);
+      this.placeChair(seat.x, seat.z, seat.rot);
+      if (occupant) this.placeDevice(occupant, seat, team, 0.78);
+      return;
+    }
+
     this.loadGlbModel('/assets/office-3d/desk-v1.glb', (desk) => {
       // The executive desk model is far taller than a seated person, so it is rescaled
       desk.rotation.y = seat.rot;
@@ -810,7 +835,176 @@ export class Office3DEngine {
         speechTimer: 0,
         seed: idx + 1
       });
+
+      if (spec.id === 'bos') {
+        this.initBossSystem();
+      }
     });
+  }
+
+  private initBossSystem() {
+    this.bossSystem = new BossSystem({
+      getEmployees: () => {
+        const list: EmployeeEvaluationSubject[] = [];
+        this.characters.forEach((char) => {
+          list.push({
+            id: char.id,
+            name: char.name,
+            roleTitle: char.roleTitle,
+            mood: char.vitals.mood,
+            energy: char.vitals.energy,
+            stress: char.vitals.stress,
+            x: char.x,
+            z: char.z
+          });
+        });
+        return list;
+      },
+      getEmployee: (id: string) => {
+        const char = this.characters.get(id);
+        if (!char) return null;
+        return {
+          id: char.id,
+          name: char.name,
+          roleTitle: char.roleTitle,
+          mood: char.vitals.mood,
+          energy: char.vitals.energy,
+          stress: char.vitals.stress,
+          x: char.x,
+          z: char.z
+        };
+      },
+      onScold: (outcome: InspectionOutcome, subject: EmployeeEvaluationSubject) => {
+        this.handleBossScold(outcome, subject);
+      },
+      onCoffeeGift: (outcome: InspectionOutcome, subject: EmployeeEvaluationSubject) => {
+        this.handleBossCoffeeGift(outcome, subject);
+      }
+    });
+  }
+
+  private handleBossScold(outcome: InspectionOutcome, subject: EmployeeEvaluationSubject) {
+    const bossChar = this.characters.get('bos');
+    const targetChar = this.characters.get(subject.id);
+    if (!bossChar || !targetChar) return;
+
+    this.soundEffects.playBossScold();
+    this.say(bossChar, outcome.dialogueText, 4.0);
+    this.showStamp(targetChar, '[SCOLD]', 'stamp');
+    this.onLog?.('[SCOLD]', 'Bos', outcome.dialogueText);
+
+    targetChar.vitals.mood = 'TAKUT';
+    targetChar.vitals.energy = Math.min(100, targetChar.vitals.energy + outcome.energyDelta);
+    targetChar.vitals.stress = Math.min(100, targetChar.vitals.stress + outcome.stressDelta);
+    targetChar.jolt = 0.8;
+    this.say(targetChar, this.pick(MOOD_LINES.TAKUT), 3.0);
+
+    if (targetChar.place !== targetChar.home || targetChar.path.length > 0) {
+      this.walkHome(targetChar, true);
+    }
+  }
+
+  private handleBossCoffeeGift(outcome: InspectionOutcome, subject: EmployeeEvaluationSubject) {
+    const bossChar = this.characters.get('bos');
+    const targetChar = this.characters.get(subject.id);
+    if (!bossChar || !targetChar) return;
+
+    this.soundEffects.playCoffeeChime();
+    this.say(bossChar, outcome.dialogueText, 4.0);
+    this.showStamp(targetChar, '[COFFEE_GIFT]', 'stamp stamp-coffee');
+    this.onLog?.('[COFFEE_GIFT]', 'Bos', outcome.dialogueText);
+
+    targetChar.vitals.mood = 'SENANG';
+    targetChar.vitals.energy = 100;
+    targetChar.vitals.stress = Math.max(0, targetChar.vitals.stress + outcome.stressDelta);
+    this.soundEffects.playCoffeeSip();
+    this.spawnCoffeeGiftEffect(targetChar);
+    this.say(targetChar, 'Terima kasih Bos! Kopi terbaik, langsung on-fire!', 3.0);
+  }
+
+  private spawnCoffeeGiftEffect(c: Character3D) {
+    const steamGroup = new THREE.Group();
+    steamGroup.position.set(c.x, 1.1, c.z);
+
+    const puffGeo = new THREE.SphereGeometry(0.08, 8, 8);
+    const steamMat = new THREE.MeshBasicMaterial({ color: '#FDE68A', transparent: true, opacity: 0.8 });
+    const puffs: THREE.Mesh[] = [];
+    for (let i = 0; i < 4; i++) {
+      const p = new THREE.Mesh(puffGeo, steamMat);
+      p.position.set((Math.random() - 0.5) * 0.2, i * 0.12, (Math.random() - 0.5) * 0.2);
+      steamGroup.add(p);
+      puffs.push(p);
+    }
+    this.scene.add(steamGroup);
+
+    const ring = new THREE.Mesh(
+      new THREE.RingGeometry(0.3, 0.45, 32),
+      new THREE.MeshBasicMaterial({ color: '#F59E0B', transparent: true, side: THREE.DoubleSide, depthTest: false })
+    );
+    ring.rotation.x = -Math.PI / 2;
+    ring.position.set(c.x, 0.05, c.z);
+    this.scene.add(ring);
+
+    this.effects.push({
+      elapsed: 0,
+      duration: 1.6,
+      update: (p) => {
+        steamGroup.position.y = 1.1 + p * 0.6;
+        steamMat.opacity = Math.max(0, 0.8 * (1 - p));
+        puffs.forEach((puff, idx) => {
+          puff.position.x += Math.sin(p * 8 + idx) * 0.005;
+          const s = 1 + p * 1.5;
+          puff.scale.set(s, s, s);
+        });
+        const grow = 1 + p * 2.5;
+        ring.scale.set(grow, grow, 1);
+        (ring.material as THREE.MeshBasicMaterial).opacity = Math.max(0, 0.9 * (1 - p));
+      },
+      dispose: () => {
+        this.scene.remove(steamGroup);
+        this.scene.remove(ring);
+        puffGeo.dispose();
+        steamMat.dispose();
+        ring.geometry.dispose();
+        (ring.material as THREE.Material).dispose();
+      }
+    });
+  }
+
+  private updateBoss(c: Character3D, delta: number) {
+    if (!this.bossSystem) return;
+    this.bossSystem.update(delta);
+
+    c.x = this.bossSystem.x;
+    c.z = this.bossSystem.z;
+
+    const state = this.bossSystem.state;
+    if (state === 'PATROLLING' || state === 'WALKING_OUT' || state === 'RETURNING') {
+      if (c.currentAnimName !== 'walk') this.crossFadeAction(c, 'walk', 0.25);
+      const targetPoint = state === 'RETURNING'
+        ? { x: EXECUTIVE_OFFICE.seatX, z: EXECUTIVE_OFFICE.seatZ }
+        : (BOSS_PATROL_WAYPOINTS[this.bossSystem.currentWaypointIndex] || BOSS_PATROL_WAYPOINTS[0]);
+      const dx = targetPoint.x - c.x;
+      const dz = targetPoint.z - c.z;
+      if (Math.hypot(dx, dz) > 0.05) {
+        c.root.rotation.y = this.turnToward(c.root.rotation.y, Math.atan2(dx, dz), 8 * delta);
+      }
+    } else if (state === 'IN_OFFICE') {
+      c.x = EXECUTIVE_OFFICE.seatX;
+      c.z = EXECUTIVE_OFFICE.seatZ;
+      c.root.rotation.y = -Math.PI / 2;
+      if (c.currentAnimName !== 'sit') this.crossFadeAction(c, 'sit', 0.4);
+    } else if (state === 'SCOLDING' || state === 'GIFTING_COFFEE') {
+      if (c.currentAnimName !== 'idle') this.crossFadeAction(c, 'idle', 0.3);
+      if (this.bossSystem.targetEmployeeId) {
+        const target = this.characters.get(this.bossSystem.targetEmployeeId);
+        if (target) {
+          const dx = target.x - c.x;
+          const dz = target.z - c.z;
+          c.root.rotation.y = this.turnToward(c.root.rotation.y, Math.atan2(dx, dz), 10 * delta);
+        }
+      }
+    }
   }
 
   private startingEnergy(mood: Mood, idx: number): number {
@@ -963,10 +1157,14 @@ export class Office3DEngine {
 
     this.characters.forEach((c) => {
       c.mixer.update(delta);
-      this.updateLocomotion(c, delta);
+      if (c.id === 'bos') {
+        this.updateBoss(c, delta);
+      } else {
+        this.updateLocomotion(c, delta);
+      }
 
       const seated = c.currentAnimName === 'sit' && c.path.length === 0;
-      if (stepVitals(c.vitals, delta, seated)) this.onMoodChanged(c);
+      if (c.id !== 'bos' && stepVitals(c.vitals, delta, seated)) this.onMoodChanged(c);
 
       if (seated) this.applySeatedPose(c, delta, t + c.seed * Math.PI);
 
@@ -1390,7 +1588,7 @@ export class Office3DEngine {
 
   private availablePeople(): Character3D[] {
     return Array.from(this.characters.values()).filter(
-      (c) => c.place === c.home && c.currentAnimName === 'sit' && c.path.length === 0 && isProductive(c.vitals.mood)
+      (c) => c.id !== 'bos' && c.place === c.home && c.currentAnimName === 'sit' && c.path.length === 0 && isProductive(c.vitals.mood)
     );
   }
 
@@ -1476,11 +1674,80 @@ export class Office3DEngine {
   // EXTERNAL CONTROL METHODS
   // ==========================================
   public resetCamera() {
+    this.exitFpp();
     this.freeCamera.flyTo(OVERVIEW_POSITION, OVERVIEW_TARGET);
+  }
+
+  public isFppActive(): boolean {
+    return this.freeCamera.isFpp();
+  }
+
+  public getActiveFppTarget(): string | null {
+    return this.fppTargetId;
+  }
+
+  public getBossState(): BossBehaviorState {
+    return this.bossSystem ? this.bossSystem.getBossState() : 'IN_OFFICE';
+  }
+
+  public enterFpp(id: string) {
+    const c = this.characters.get(id);
+    if (!c) return;
+
+    // Restore head visibility of any previous FPP target
+    if (this.fppTargetId && this.fppTargetId !== id) {
+      const prev = this.characters.get(this.fppTargetId);
+      if (prev && prev.headBone) prev.headBone.visible = true;
+    }
+
+    this.fppTargetId = id;
+    if (c.headBone) c.headBone.visible = false;
+
+    this.freeCamera.setFpp(
+      () => {
+        const char = this.characters.get(id);
+        if (!char) {
+          return { eye: new THREE.Vector3(0, 1.5, 0), facingYaw: 0 };
+        }
+        const isSitting = char.currentAnimName === 'sit' || char.currentAnimName === 'idle';
+        const eyeY = isSitting ? 1.15 : 1.55;
+        const facing = char.place?.rot ?? char.root.rotation.y;
+        const forwardOffset = 0.16;
+        const eyeX = char.root.position.x + Math.sin(facing) * forwardOffset;
+        const eyeZ = char.root.position.z + Math.cos(facing) * forwardOffset;
+        return {
+          eye: new THREE.Vector3(eyeX, eyeY, eyeZ),
+          facingYaw: facing
+        };
+      },
+      () => {
+        if (this.fppTargetId) {
+          const char = this.characters.get(this.fppTargetId);
+          if (char && char.headBone) char.headBone.visible = true;
+          this.fppTargetId = null;
+        }
+        window.dispatchEvent(
+          new CustomEvent('fpp:mode-change', {
+            detail: { active: false, targetId: null, targetName: null, targetRole: null }
+          })
+        );
+      }
+    );
+
+    window.dispatchEvent(
+      new CustomEvent('fpp:mode-change', {
+        detail: { active: true, targetId: c.id, targetName: c.name, targetRole: c.roleTitle }
+      })
+    );
+  }
+
+  public exitFpp() {
+    this.freeCamera.exitFpp();
   }
 
   /** Flies to stand across the desk from the person, looking at their face. */
   public focusPerson(id: string) {
+    this.exitFpp();
     const c = this.characters.get(id);
     if (!c) return;
     const facing = c.place.rot ?? c.root.rotation.y;

@@ -9,6 +9,11 @@ export interface CameraBounds {
   maxZ: number;
 }
 
+export interface FppTargetInfo {
+  eye: THREE.Vector3;
+  facingYaw: number;
+}
+
 const LOOK_SPEED = 0.005;
 const WALK_SPEED = 5;
 const RUN_SPEED = 12;
@@ -19,6 +24,7 @@ const MIN_PITCH = -1.5;
 /**
  * Fly-anywhere camera: drag to look, scroll to move toward the cursor, WASD/arrows to walk,
  * Q/E to go down/up, Shift to hurry. It never leaves the room.
+ * Also supports First-Person Perspective (FPP) mode locked to an observed character's eyes.
  */
 export class FreeCamera {
   private yaw = 0;
@@ -28,6 +34,13 @@ export class FreeCamera {
   private dragFrom: { x: number; y: number } | null = null;
   private flight: { position: THREE.Vector3; yaw: number; pitch: number } | null = null;
   private raycaster = new THREE.Raycaster();
+
+  // FPP Mode properties
+  private mode: 'FREE' | 'FPP' = 'FREE';
+  private fppGetter: (() => FppTargetInfo) | null = null;
+  private fppYawOffset = 0;
+  private fppPitchOffset = 0;
+  private onFppExitCallback: (() => void) | null = null;
 
   constructor(
     private camera: THREE.PerspectiveCamera,
@@ -46,6 +59,12 @@ export class FreeCamera {
 
     window.addEventListener('keydown', (e) => {
       if (this.isTyping(e)) return;
+      if (e.key === 'Escape' && this.mode === 'FPP') {
+        this.exitFpp();
+        return;
+      }
+      if (this.mode === 'FPP') return; // Do not translate position when in FPP mode
+
       const key = e.key.toLowerCase();
       if (['w', 'a', 's', 'd', 'q', 'e', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright', 'shift'].includes(key)) {
         this.keys.add(key);
@@ -55,6 +74,36 @@ export class FreeCamera {
     });
     window.addEventListener('keyup', (e) => this.keys.delete(e.key.toLowerCase()));
     window.addEventListener('blur', () => this.keys.clear());
+  }
+
+  public setFpp(getter: (() => FppTargetInfo) | null, onExit?: () => void) {
+    if (getter) {
+      this.mode = 'FPP';
+      this.fppGetter = getter;
+      this.fppYawOffset = 0;
+      this.fppPitchOffset = 0;
+      this.flight = null;
+      this.keys.clear();
+      this.onFppExitCallback = onExit || null;
+    } else {
+      this.exitFpp();
+    }
+  }
+
+  public exitFpp() {
+    if (this.mode === 'FPP') {
+      this.mode = 'FREE';
+      this.fppGetter = null;
+      this.fppYawOffset = 0;
+      this.fppPitchOffset = 0;
+      const callback = this.onFppExitCallback;
+      this.onFppExitCallback = null;
+      if (callback) callback();
+    }
+  }
+
+  public isFpp(): boolean {
+    return this.mode === 'FPP';
   }
 
   private isTyping(e: KeyboardEvent): boolean {
@@ -67,6 +116,13 @@ export class FreeCamera {
     const dx = e.clientX - this.dragFrom.x;
     const dy = e.clientY - this.dragFrom.y;
     this.dragFrom = { x: e.clientX, y: e.clientY };
+
+    if (this.mode === 'FPP') {
+      this.fppYawOffset += dx * LOOK_SPEED;
+      this.fppPitchOffset = THREE.MathUtils.clamp(this.fppPitchOffset + dy * LOOK_SPEED, -0.75, 0.75);
+      return;
+    }
+
     this.flight = null;
     this.yaw += dx * LOOK_SPEED;
     this.pitch = THREE.MathUtils.clamp(this.pitch + dy * LOOK_SPEED, MIN_PITCH, MAX_PITCH);
@@ -74,6 +130,7 @@ export class FreeCamera {
 
   /** Scrolling moves along the ray under the cursor, so you zoom into whatever you point at. */
   private onWheel(e: WheelEvent) {
+    if (this.mode === 'FPP') return;
     e.preventDefault();
     this.flight = null;
     const rect = this.element.getBoundingClientRect();
@@ -100,6 +157,8 @@ export class FreeCamera {
   }
 
   public set(position: THREE.Vector3, target: THREE.Vector3) {
+    this.mode = 'FREE';
+    this.fppGetter = null;
     this.position.copy(position);
     this.clamp(this.position);
     const angles = this.anglesToward(this.position, target);
@@ -110,6 +169,8 @@ export class FreeCamera {
   }
 
   public flyTo(position: THREE.Vector3, target: THREE.Vector3) {
+    this.mode = 'FREE';
+    this.fppGetter = null;
     const destination = position.clone();
     this.clamp(destination);
     const angles = this.anglesToward(destination, target);
@@ -121,6 +182,16 @@ export class FreeCamera {
   }
 
   public update(delta: number) {
+    if (this.mode === 'FPP' && this.fppGetter) {
+      const target = this.fppGetter();
+      this.position.copy(target.eye);
+      const yaw = (target.facingYaw || 0) + this.fppYawOffset;
+      const pitch = this.fppPitchOffset;
+      this.camera.position.copy(this.position);
+      this.camera.lookAt(this.position.clone().add(this.direction(yaw, pitch)));
+      return;
+    }
+
     if (this.flight) {
       const ease = Math.min(1, 3.5 * delta);
       this.position.lerp(this.flight.position, ease);

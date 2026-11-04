@@ -70,7 +70,16 @@ function createRosterRow(person: PersonSnapshot): RosterRow {
 
   const name = document.createElement('span');
   name.className = 'person-name';
-  name.textContent = `${person.name} `;
+  if (person.id === 'bos') {
+    const bossTag = document.createElement('span');
+    bossTag.className = 'person-device';
+    bossTag.style.background = '#DC2626';
+    bossTag.style.color = '#FFFFFF';
+    bossTag.style.fontWeight = '700';
+    bossTag.textContent = '[BOS] ';
+    name.appendChild(bossTag);
+  }
+  name.appendChild(document.createTextNode(`${person.name} `));
   const device = document.createElement('span');
   device.className = 'person-device';
   device.textContent = person.device === 'MAC' ? 'MacBook' : 'PC';
@@ -89,7 +98,14 @@ function createRosterRow(person: PersonSnapshot): RosterRow {
   });
 
   focus.append(name, mood, bars);
-  focus.addEventListener('click', () => engine.focusPerson(person.id));
+  focus.addEventListener('click', () => {
+    if (engine.isFppActive() && engine.getActiveFppTarget() === person.id) {
+      engine.exitFpp();
+    } else {
+      engine.enterFpp(person.id);
+    }
+    engine.soundEffects.playButtonClick();
+  });
 
   const whipButton = document.createElement('button');
   whipButton.className = 'btn-row-whip';
@@ -171,6 +187,31 @@ setInterval(() => {
 document.getElementById('btn-reset-cam')?.addEventListener('click', () => {
   engine.resetCamera();
   engine.soundEffects.playButtonClick();
+});
+
+// FPP Mode HUD Wiring
+const fppHud = document.getElementById('fpp-hud') as HTMLElement | null;
+const fppTargetName = document.getElementById('fpp-target-name') as HTMLElement | null;
+const btnExitFpp = document.getElementById('btn-exit-fpp') as HTMLElement | null;
+
+btnExitFpp?.addEventListener('click', () => {
+  engine.exitFpp();
+  engine.soundEffects.playButtonClick();
+});
+
+window.addEventListener('fpp:mode-change', (e: Event) => {
+  const customEvent = e as CustomEvent<{
+    active: boolean;
+    targetId: string | null;
+    targetName: string | null;
+    targetRole: string | null;
+  }>;
+  if (customEvent.detail.active) {
+    if (fppHud) fppHud.style.display = 'flex';
+    if (fppTargetName) fppTargetName.textContent = `${customEvent.detail.targetName} (${customEvent.detail.targetRole})`;
+  } else {
+    if (fppHud) fppHud.style.display = 'none';
+  }
 });
 
 // Whip Every Slacker

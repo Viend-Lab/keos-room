@@ -1,9 +1,14 @@
 {
   "name": "keos-room",
   "version": "2.4.0",
-  "description": "Tactical 2D Pixel-Art Agent Telemetry Virtual Office",
+  "description": "Interactive 3D Autonomous AI Agent Telemetry Virtual Office & Multi-Harness Visualizer",
   "type": "module",
   "private": true,
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Viend-Lab/keos-room.git"
+  },
+  "homepage": "https://github.com/Viend-Lab/keos-room#readme",
   "main": "src/server/server.ts",
   "scripts": {
     "start": "tsx src/server/server.ts",
